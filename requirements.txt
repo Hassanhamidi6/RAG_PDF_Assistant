@@ -1,13 +1,14 @@
-langchain-google-genai
-google-generativeai
 langchain
+langchain-google-genai
+langchain-core
+langchain-community
+google-genai
+groq
 pyPDF2
 faiss-cpu
 streamlit
 python-dotenv
-langchain-community
-
-
+streamlit-audiorecorder
 # chromadb
 # llama-index
 # pypdf   
