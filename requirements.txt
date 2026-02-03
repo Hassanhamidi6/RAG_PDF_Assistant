@@ -8,7 +8,15 @@ pyPDF2
 faiss-cpu
 streamlit
 python-dotenv
+python-multipart
 streamlit-audiorecorder
+fastapi
+uvicorn
+speechrecognition
+pyttsx3
+pydub
+ffmpeg 
+
 # chromadb
 # llama-index
 # pypdf   

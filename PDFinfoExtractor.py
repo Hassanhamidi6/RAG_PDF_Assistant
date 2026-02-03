@@ -1,4 +1,7 @@
-import streamlit as st
+'''
+Streamlit UI
+'''
+import streamlit as st 
 from PyPDF2 import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -62,6 +65,27 @@ def get_conversational_chain():
     chain= load_qa_chain(llm=llm, chain_type="stuff", prompt=prompt)
     return chain
 
+
+# ------------------------
+# Text to Speech
+# ------------------------
+
+def text_to_speech(text):
+    import pyttsx3
+
+    engine = pyttsx3.init()
+
+    # # Optional voice settings
+    # engine.setProperty('rate', 170)   # speed (default ~200)
+    # engine.setProperty('volume', 1.0) # 0.0 to 1.0
+
+    engine.say(text)
+    engine.runAndWait()
+
+# ------------------------
+# Conversational Chain 
+# ------------------------
+
 def user_input(user_question):
     new_db= FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
     docs= new_db.similarity_search(user_question)
@@ -74,39 +98,72 @@ def user_input(user_question):
          return_only_outputs=True
          )
 
-    print(response)
+    # print(response)
+    answer = response['output_text']
 
-    st.write("Reply: ", response['output_text'])
+    text_to_speech(answer) # giving text to the Voice LLm 
+
+    return answer # Also return the text 
+
+    # st.write("Reply: ", response['output_text'])
 
 
-# Streamlit UI
+# ------------------------
+# Speech to Text 
+# ------------------------
 
-st.set_page_config(page_title="📄 PDF Chatbot with Gemini", page_icon="🤖", layout="wide")
-st.title("🤖 PDF Information Extractor ")
-st.markdown("Upload Multiple PDFs, process them, and chat with your data!")
+def speech_to_text():
+    import speech_recognition as sr
 
-with st.sidebar:
-    st.header("📄 Upload your PDF files")
-    pdf_docs = st.file_uploader("Upload PDFs", accept_multiple_files=True)
+    recognizer = sr.Recognizer()
+    microphone = sr.Microphone()
 
-    if st.button("Process PDFs"):
-        if pdf_docs:
-            with st.spinner("Processing PDFs..."):
-                raw_text = get_pdf_text(pdf_docs)
-                if raw_text:
-                    text_chunks = get_text_chunks(raw_text)
-                    get_vector_store(text_chunks)
-                    st.success("✅ PDFs processed successfully and vector store saved!")
-                else:
-                    st.warning("❗ No text extracted from uploaded PDFs.")
-        else: 
-            st.warning("❗ Please upload at least one PDF file.")
+    with microphone as source:
+        st.info("Listening... Please speak into the microphone.")
+        recognizer.adjust_for_ambient_noise(source)
+        audio = recognizer.listen(source)
 
-user_question = st.text_input("Enter your question:")
+    try:
+        st.info("Recognizing speech...")
+        text = recognizer.recognize_google(audio)
+        st.success("Speech recognized successfully!")
+        return text
+    except sr.UnknownValueError:
+        st.error("Sorry, I could not understand the audio.")
+        return ""
+    except sr.RequestError as e:
+        st.error(f"Could not request results; {e}")
+        return ""
 
-if user_question:   
-    with st.spinner("Searching for the answer..."):
-        try:
-            user_input(user_question)
-        except Exception as e:
-            st.error(f"❗ Error: {e}")
+
+# # Streamlit UI
+
+# st.set_page_config(page_title="📄 PDF Chatbot with Gemini", page_icon="🤖", layout="wide")
+# st.title("🤖 PDF Information Extractor ")
+# st.markdown("Upload Multiple PDFs, process them, and chat with your data!")
+
+# with st.sidebar:
+#     st.header("📄 Upload your PDF files")
+#     pdf_docs = st.file_uploader("Upload PDFs", accept_multiple_files=True)
+
+#     if st.button("Process PDFs"):
+#         if pdf_docs:
+#             with st.spinner("Processing PDFs..."):
+#                 raw_text = get_pdf_text(pdf_docs)
+#                 if raw_text:
+#                     text_chunks = get_text_chunks(raw_text)
+#                     get_vector_store(text_chunks)
+#                     st.success("✅ PDFs processed successfully and vector store saved!")
+#                 else:
+#                     st.warning("❗ No text extracted from uploaded PDFs.")
+#         else: 
+#             st.warning("❗ Please upload at least one PDF file.")
+
+# user_question = st.text_input("Enter your question:")
+
+# if user_question:   
+#     with st.spinner("Searching for the answer..."):
+#         try:
+#             user_input(user_question)
+#         except Exception as e:
+#             st.error(f"❗ Error: {e}")

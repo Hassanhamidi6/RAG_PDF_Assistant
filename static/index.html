@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI PDF Reader - Voice Enabled Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --primary-light: #764ba2;
+            --secondary: #f093fb;
+            --accent: #4facfe;
+            --bg-main: #f8f9ff;
+            --bg-card: #ffffff;
+            --text-primary: #2d3748;
+            --text-secondary: #718096;
+            --border: #e2e8f0;
+            --success: #48bb78;
+            --error: #f56565;
+            --shadow-sm: 0 2px 8px rgba(102, 126, 234, 0.08);
+            --shadow-md: 0 4px 16px rgba(102, 126, 234, 0.12);
+            --shadow-lg: 0 12px 32px rgba(102, 126, 234, 0.16);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background particles */
+        .bg-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float-particle linear infinite;
+        }
+
+        @keyframes float-particle {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1rem;
+        }
+
+        .header .voice-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 20px;
+            border-radius: 50px;
+            color: white;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Main Card */
+        .main-card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Upload Section */
+        .upload-section {
+            padding: 40px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .upload-zone {
+            border: 3px dashed var(--border);
+            border-radius: 16px;
+            padding: 60px 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.02);
+            transform: translateY(-2px);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.05);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .upload-text h3 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-text p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .selected-files {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .file-chip {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            animation: scaleIn 0.3s ease-out;
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .file-chip .remove-file {
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .file-chip .remove-file:hover {
+            opacity: 1;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .upload-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Chat Section */
+        .chat-section {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .chat-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .chat-header {
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .voice-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .voice-toggle {
+            background: white;
+            border: 2px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .voice-toggle:hover {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .voice-toggle.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .voice-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success);
+            display: none;
+        }
+
+        .voice-toggle.active .voice-indicator {
+            display: block;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.3);
+                opacity: 0.7;
+            }
+        }
+
+        .voice-selector {
+            position: relative;
+        }
+
+        .voice-select {
+            background: white;
+            border: 2px solid var(--border);
+            padding: 10px 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .voice-select:hover, .voice-select:focus {
+            border-color: var(--primary);
+        }
+
+        .chat-container {
+            height: 500px;
+            overflow-y: auto;
+            padding: 30px;
+            background: var(--bg-main);
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.user .message-content {
+            animation: slideInRight 0.4s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .message-wrapper {
+            display: inline-block;
+            max-width: 75%;
+        }
+
+        .message-content {
+            padding: 16px 20px;
+            border-radius: 18px;
+            font-size: 1rem;
+            line-height: 1.6;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .message.user .message-actions {
+            justify-content: flex-end;
+        }
+
+        .action-btn {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .action-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .action-btn.speaking {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .sound-wave {
+            display: inline-flex;
+            gap: 2px;
+            align-items: center;
+            height: 12px;
+        }
+
+        .sound-bar {
+            width: 2px;
+            background: currentColor;
+            border-radius: 2px;
+            animation: sound-wave 0.8s ease-in-out infinite;
+        }
+
+        .sound-bar:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .sound-bar:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes sound-wave {
+            0%, 100% {
+                height: 4px;
+            }
+            50% {
+                height: 12px;
+            }
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            gap: 6px;
+            padding: 16px 20px;
+            background: white;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        /* Input Section */
+        .input-section {
+            padding: 24px 30px;
+            background: white;
+            border-top: 1px solid var(--border);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .question-input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 2px solid var(--border);
+            border-radius: 50px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .question-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Status Messages */
+        .status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideInRight 0.4s ease-out;
+            box-shadow: var(--shadow-md);
+        }
+
+        .status-message.success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
+        .status-message.error {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Welcome Message */
+        .welcome-message {
+            text-align: center;
+            padding: 60px 40px;
+            color: var(--text-secondary);
+        }
+
+        .welcome-message h2 {
+            color: var(--text-primary);
+            font-size: 2rem;
+            margin-bottom: 16px;
+        }
+
+        .welcome-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        /* New Session Button */
+        .new-session-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .new-session-btn:hover {
+            background: white;
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .upload-section {
+                padding: 30px 20px;
+            }
+
+            .upload-zone {
+                padding: 40px 20px;
+            }
+
+            .chat-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+            }
+
+            .voice-controls {
+                justify-content: center;
+            }
+
+            .chat-container {
+                height: 400px;
+                padding: 20px;
+            }
+
+            .message-wrapper {
+                max-width: 85%;
+            }
+
+            .input-section {
+                padding: 16px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background Particles -->
+    <div class="bg-particles" id="particles"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🤖 AI PDF Reader</h1>
+            <p>Chat with your documents intelligently</p>
+            <div class="voice-badge">🎤 Voice Enabled</div>
+            <button class="new-session-btn" id="newSessionBtn" style="display: none;">Start New Session</button>
+        </div>
+
+        <!-- Main Card -->
+        <div class="main-card">
+            <!-- Upload Section -->
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">
+                        <h3>Upload Your PDF Documents</h3>
+                        <p>Drag & drop or click to select PDF files</p>
+                    </div>
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf" multiple>
+                </div>
+                <div class="selected-files" id="selectedFiles"></div>
+                <div style="text-align: center;">
+                    <button class="upload-btn" id="uploadBtn" disabled>
+                        Process PDFs
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Section -->
+            <div class="chat-section" id="chatSection">
+                <!-- Chat Header with Voice Controls -->
+                <div class="chat-header">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.5rem;">💬</span>
+                        <div>
+                            <h3 style="color: var(--text-primary); font-size: 1.1rem; margin-bottom: 2px;">Chat Active</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.85rem;" id="voiceStatus">Voice responses disabled</p>
+                        </div>
+                    </div>
+                    <div class="voice-controls">
+                        <button class="voice-toggle" id="voiceToggle">
+                            <span class="voice-indicator"></span>
+                            <span>🔊 Enable Voice</span>
+                        </button>
+                        <div class="voice-selector">
+                            <select class="voice-select" id="voiceSelect">
+                                <option value="">Select Voice...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-container" id="chatContainer">
+                    <div class="welcome-message">
+                        <div class="welcome-icon">💬</div>
+                        <h2>Ready to Chat!</h2>
+                        <p>Ask me anything about your uploaded documents</p>
+                        <p style="margin-top: 10px; font-size: 0.9rem;">🎤 Enable voice to hear responses</p>
+                    </div>
+                </div>
+                <div class="input-section">
+                    <div class="input-wrapper">
+                        <input 
+                            type="text" 
+                            class="question-input" 
+                            id="questionInput" 
+                            placeholder="Ask a question about your PDFs..."
+                            autocomplete="off"
+                        >
+                        <button class="send-btn" id="sendBtn">
+                            <span style="font-size: 1.5rem;">➤</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // Configuration
+        // ============================================
+        const API_BASE_URL = 'http://localhost:8000'; // UPDATE THIS WITH YOUR API URL
+
+        // ============================================
+        // State Management
+        // ============================================
+        let selectedFiles = [];
+        let isProcessing = false;
+        let voiceEnabled = false;
+        let currentUtterance = null;
+        let availableVoices = [];
+        let selectedVoice = null;
+
+        // ============================================
+        // DOM Elements
+        // ============================================
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const selectedFilesDiv = document.getElementById('selectedFiles');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadSection = document.getElementById('uploadSection');
+        const chatSection = document.getElementById('chatSection');
+        const chatContainer = document.getElementById('chatContainer');
+        const questionInput = document.getElementById('questionInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const newSessionBtn = document.getElementById('newSessionBtn');
+        const voiceToggle = document.getElementById('voiceToggle');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const voiceStatus = document.getElementById('voiceStatus');
+
+        // ============================================
+        // Initialize Particles
+        // ============================================
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.width = Math.random() * 60 + 20 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = Math.random() * 10 + 15 + 's';
+                particle.style.animationDelay = Math.random() * 5 + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // ============================================
+        // Text-to-Speech Setup
+        // ============================================
+        function initializeTTS() {
+            if ('speechSynthesis' in window) {
+                // Load voices
+                function loadVoices() {
+                    availableVoices = speechSynthesis.getVoices();
+                    populateVoiceList();
+                }
+
+                loadVoices();
+                
+                // Chrome loads voices asynchronously
+                if (speechSynthesis.onvoiceschanged !== undefined) {
+                    speechSynthesis.onvoiceschanged = loadVoices;
+                }
+            } else {
+                showStatus('Text-to-Speech not supported in this browser', 'error');
+            }
+        }
+
+        function populateVoiceList() {
+            voiceSelect.innerHTML = '<option value="">Select Voice...</option>';
+            
+            // Filter for quality voices (prefer Google, Microsoft, or native voices)
+            const preferredVoices = availableVoices.filter(voice => 
+                voice.lang.startsWith('en') && 
+                (voice.name.includes('Google') || 
+                 voice.name.includes('Microsoft') || 
+                 voice.name.includes('Samantha') ||
+                 voice.name.includes('Natural'))
+            );
+
+            const voicesToUse = preferredVoices.length > 0 ? preferredVoices : availableVoices.filter(v => v.lang.startsWith('en'));
+
+            voicesToUse.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                if (voice.default) {
+                    option.textContent += ' - Default';
+                }
+                voiceSelect.appendChild(option);
+            });
+
+            // Select first quality voice by default
+            if (voicesToUse.length > 0) {
+                selectedVoice = voicesToUse[0];
+                voiceSelect.value = 0;
+            }
+        }
+
+        voiceSelect.addEventListener('change', (e) => {
+            const index = parseInt(e.target.value);
+            if (!isNaN(index) && availableVoices[index]) {
+                selectedVoice = availableVoices[index];
+                if (voiceEnabled) {
+                    showStatus(`Voice changed to ${selectedVoice.name}`, 'success');
+                }
+            }
+        });
+
+        function speak(text, messageElement) {
+            // Stop any ongoing speech
+            speechSynthesis.cancel();
+
+            if (!voiceEnabled || !text) return;
+
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            
+            // Set voice
+            if (selectedVoice) {
+                currentUtterance.voice = selectedVoice;
+            }
+
+            // Configure speech parameters
+            currentUtterance.rate = 1.0;    // Speed (0.1 to 10)
+            currentUtterance.pitch = 1.0;   // Pitch (0 to 2)
+            currentUtterance.volume = 1.0;  // Volume (0 to 1)
+
+            // Find the speak button for this message
+            const speakBtn = messageElement.querySelector('.speak-btn');
+            
+            currentUtterance.onstart = () => {
+                if (speakBtn) {
+                    speakBtn.classList.add('speaking');
+                    speakBtn.innerHTML = `
+                        <div class="sound-wave">
+                            <div class="sound-bar"></div>
+                            <div class="sound-bar"></div>
+                            <div class="sound-bar"></div>
+                        </div>
+                        Speaking
+                    `;
+                }
+            };
+
+            currentUtterance.onend = () => {
+                if (speakBtn) {
+                    speakBtn.classList.remove('speaking');
+                    speakBtn.innerHTML = '🔊 Play';
+                }
+            };
+
+            currentUtterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
+                if (speakBtn) {
+                    speakBtn.classList.remove('speaking');
+                    speakBtn.innerHTML = '🔊 Play';
+                }
+            };
+
+            speechSynthesis.speak(currentUtterance);
+        }
+
+        function stopSpeaking() {
+            speechSynthesis.cancel();
+        }
+
+        // Voice Toggle
+        voiceToggle.addEventListener('click', () => {
+            voiceEnabled = !voiceEnabled;
+            
+            if (voiceEnabled) {
+                voiceToggle.classList.add('active');
+                voiceToggle.innerHTML = '<span class="voice-indicator"></span><span>🔊 Voice On</span>';
+                voiceStatus.textContent = 'Voice responses enabled';
+                showStatus('Voice responses enabled! 🎉', 'success');
+            } else {
+                voiceToggle.classList.remove('active');
+                voiceToggle.innerHTML = '<span class="voice-indicator"></span><span>🔇 Voice Off</span>';
+                voiceStatus.textContent = 'Voice responses disabled';
+                stopSpeaking();
+                showStatus('Voice responses disabled', 'success');
+            }
+        });
+
+        // Initialize TTS on page load
+        initializeTTS();
+
+        // ============================================
+        // File Upload Handlers
+        // ============================================
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+            handleFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            handleFiles(files);
+        });
+
+        function handleFiles(files) {
+            selectedFiles = [...selectedFiles, ...files];
+            renderSelectedFiles();
+            uploadBtn.disabled = selectedFiles.length === 0;
+        }
+
+        function renderSelectedFiles() {
+            selectedFilesDiv.innerHTML = selectedFiles.map((file, index) => `
+                <div class="file-chip">
+                    📄 ${file.name}
+                    <span class="remove-file" onclick="removeFile(${index})">×</span>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            renderSelectedFiles();
+            uploadBtn.disabled = selectedFiles.length === 0;
+        }
+
+        // ============================================
+        // Upload PDFs
+        // ============================================
+        uploadBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0 || isProcessing) return;
+
+            isProcessing = true;
+            uploadBtn.innerHTML = '<span class="spinner"></span> Processing...';
+            uploadBtn.disabled = true;
+
+            const formData = new FormData();
+            selectedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/upload-pdf/`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus('PDFs processed successfully! 🎉', 'success');
+                    uploadSection.style.display = 'none';
+                    chatSection.classList.add('active');
+                    newSessionBtn.style.display = 'inline-block';
+                } else {
+                    showStatus('Error processing PDFs. Please try again.', 'error');
+                }
+            } catch (error) {
+                showStatus('Connection error. Is the server running?', 'error');
+                console.error('Upload error:', error);
+            } finally {
+                isProcessing = false;
+                uploadBtn.innerHTML = 'Process PDFs';
+                uploadBtn.disabled = false;
+            }
+        });
+
+        // ============================================
+        // Chat Functionality
+        // ============================================
+        async function sendQuestion() {
+            const question = questionInput.value.trim();
+            if (!question || isProcessing) return;
+
+            isProcessing = true;
+            questionInput.value = '';
+            questionInput.disabled = true;
+            sendBtn.disabled = true;
+
+            // Add user message
+            addMessage(question, 'user');
+
+            // Show typing indicator
+            const typingId = 'typing-' + Date.now();
+            addTypingIndicator(typingId);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/ask/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question })
+                });
+
+                const data = await response.json();
+                
+                removeTypingIndicator(typingId);
+
+                if (response.ok) {
+                    const messageElement = addMessage(data.answer, 'bot');
+                    
+                    // Auto-play voice if enabled
+                    if (voiceEnabled) {
+                        setTimeout(() => speak(data.answer, messageElement), 300);
+                    }
+                } else {
+                    addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+                }
+            } catch (error) {
+                removeTypingIndicator(typingId);
+                addMessage('Connection error. Please check if the server is running.', 'bot');
+                console.error('Question error:', error);
+            } finally {
+                isProcessing = false;
+                questionInput.disabled = false;
+                sendBtn.disabled = false;
+                questionInput.focus();
+            }
+        }
+
+        sendBtn.addEventListener('click', sendQuestion);
+        questionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendQuestion();
+        });
+
+        function addMessage(text, sender) {
+            const welcomeMsg = chatContainer.querySelector('.welcome-message');
+            if (welcomeMsg) welcomeMsg.remove();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const content = `
+                <div class="message-wrapper">
+                    <div class="message-content">${escapeHtml(text)}</div>
+                    ${sender === 'bot' ? `
+                        <div class="message-actions">
+                            <button class="action-btn speak-btn" onclick="handleSpeak(this, '${escapeHtml(text).replace(/'/g, "\\'")}')">
+                                🔊 Play
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            messageDiv.innerHTML = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        // Global function for speak button
+        window.handleSpeak = function(button, text) {
+            const messageElement = button.closest('.message');
+            const cleanText = text.replace(/<br>/g, ' ').replace(/\\'/g, "'");
+            
+            if (button.classList.contains('speaking')) {
+                stopSpeaking();
+                button.classList.remove('speaking');
+                button.innerHTML = '🔊 Play';
+            } else {
+                // Stop any other speaking
+                document.querySelectorAll('.speak-btn.speaking').forEach(btn => {
+                    btn.classList.remove('speaking');
+                    btn.innerHTML = '🔊 Play';
+                });
+                
+                if (!voiceEnabled) {
+                    showStatus('Please enable voice first! 🎤', 'error');
+                    return;
+                }
+                
+                speak(cleanText, messageElement);
+            }
+        };
+
+        function addTypingIndicator(id) {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot';
+            typingDiv.id = id;
+            typingDiv.innerHTML = `
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            chatContainer.appendChild(typingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function removeTypingIndicator(id) {
+            const indicator = document.getElementById(id);
+            if (indicator) indicator.remove();
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status-message ${type}`;
+            statusDiv.textContent = message;
+            document.body.appendChild(statusDiv);
+
+            setTimeout(() => {
+                statusDiv.style.animation = 'slideInRight 0.4s ease-out reverse';
+                setTimeout(() => statusDiv.remove(), 400);
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        // ============================================
+        // New Session
+        // ============================================
+        newSessionBtn.addEventListener('click', () => {
+            stopSpeaking();
+            selectedFiles = [];
+            chatContainer.innerHTML = '';
+            uploadSection.style.display = 'block';
+            chatSection.classList.remove('active');
+            newSessionBtn.style.display = 'none';
+            renderSelectedFiles();
+            fileInput.value = '';
+            voiceEnabled = false;
+            voiceToggle.classList.remove('active');
+            voiceToggle.innerHTML = '<span class="voice-indicator"></span><span>🔊 Enable Voice</span>';
+            voiceStatus.textContent = 'Voice responses disabled';
+        });
+
+        // ============================================
+        // Focus Management
+        // ============================================
+        const observer = new MutationObserver(() => {
+            if (chatSection.classList.contains('active')) {
+                questionInput.focus();
+            }
+        });
+        observer.observe(chatSection, { attributes: true, attributeFilter: ['class'] });
+
+        // Stop speech when page is hidden
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopSpeaking();
+            }
+        });
+    </script>
+</body>
+</html>
