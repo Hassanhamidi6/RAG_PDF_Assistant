@@ -3,8 +3,9 @@ Streamlit UI
 '''
 import streamlit as st 
 from PyPDF2 import PdfReader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS    
 from langchain_core.prompts import PromptTemplate
@@ -14,11 +15,13 @@ import os
 
 load_dotenv()
 # api_key = st.secrets["APIkey"]   
-api_key= os.getenv("GoogleAPI") 
+# api_key= os.getenv("GoogleAPI") 
+api_key= os.getenv("groq_api_key") 
 
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-llm= ChatGoogleGenerativeAI(model="gemini-2.5-flash",api_key=api_key,  temperature=0.3)
+# llm= ChatGoogleGenerativeAI(model="gemini-2.5-flash",api_key=api_key,  temperature=0.3)
+llm= ChatGroq(model="llama-3.3-70b-versatile", api_key=api_key, temperature=0.3)
 
 prompt_template='''
 
@@ -88,7 +91,7 @@ def text_to_speech(text):
 
 def user_input(user_question):
     new_db= FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-    docs= new_db.similarity_search(user_question)
+    docs= new_db.similarity_search(user_question )
 
     chain= get_conversational_chain()
 
@@ -112,28 +115,6 @@ def user_input(user_question):
 # Speech to Text 
 # ------------------------
 
-def speech_to_text():
-    import speech_recognition as sr
-
-    recognizer = sr.Recognizer()
-    microphone = sr.Microphone()
-
-    with microphone as source:
-        st.info("Listening... Please speak into the microphone.")
-        recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source)
-
-    try:
-        st.info("Recognizing speech...")
-        text = recognizer.recognize_google(audio)
-        st.success("Speech recognized successfully!")
-        return text
-    except sr.UnknownValueError:
-        st.error("Sorry, I could not understand the audio.")
-        return ""
-    except sr.RequestError as e:
-        st.error(f"Could not request results; {e}")
-        return ""
 
 
 # # Streamlit UI
